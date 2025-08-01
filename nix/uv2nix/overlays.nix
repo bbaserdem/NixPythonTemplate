@@ -31,8 +31,10 @@
   # Create editable overlay for the main project and all workspace packages
   editableOverlay = workspace.mkEditablePyprojectOverlay {
     root = "$REPO_ROOT";
-    # Include the main project and all workspace packages
-    members = [ pythonProject.projectName ] ++ (map (ws: ws.projectName) pythonProject.workspaces);
+    # Include the main project (if not empty root) and all workspace packages
+    members = 
+      (if pythonProject.emptyRoot then [] else [ pythonProject.projectName ])
+      ++ (map (ws: ws.projectName) pythonProject.workspaces);
   };
 
 in {

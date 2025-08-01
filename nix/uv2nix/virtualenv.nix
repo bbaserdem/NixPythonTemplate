@@ -17,7 +17,7 @@
   # Single virtualenv with only buildable packages
   virtualenv =
     editablePythonSet.mkVirtualEnv
-    "${pythonProject.projectName}-dev-env"
+    "${if pythonProject.emptyRoot then "workspace" else pythonProject.projectName}-dev-env"
     buildableDeps;
 
   # Shell configuration
