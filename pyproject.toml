@@ -1,7 +1,7 @@
 [project]
 name = "template"
 version = "0.0.0"
-description = "Add your description here"
+description = "Python monorepo template with workspace support"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -20,7 +20,10 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "math-utils",
+    "text-utils",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -45,6 +48,13 @@ docs = [
 
 [project.scripts]
 template = "template.main:main"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+math-utils = { workspace = true }
+text-utils = { workspace = true }
 
 [build-system]
 requires = ["hatchling", "editables"]

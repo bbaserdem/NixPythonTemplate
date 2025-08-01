@@ -1,0 +1,43 @@
+[project]
+name = "text-utils"
+version = "0.1.0"
+description = "Text processing utility functions"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    { name = "Your Name", email = "your.name@example.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "math-utils",  # Workspace dependency
+]
+
+[project.optional-dependencies]
+testing = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.uv.sources]
+math-utils = { workspace = true }
+
+[build-system]
+requires = ["hatchling", "editables"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/text_utils"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--cov=text_utils",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["src/text_utils"]

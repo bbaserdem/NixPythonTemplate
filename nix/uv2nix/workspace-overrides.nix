@@ -5,8 +5,8 @@
   pythonProject,
   ...
 }: {
-  # Create workspace package overrides
-  mkWorkspaceOverrides = final: prev: buildableWorkspaces: let
+  # Create workspace package overrides for testing
+  mkWorkspaceOverrides = final: prev: let
     # Apply overrides to each workspace package
     overridePackage = name:
       prev.${name}.overrideAttrs (old: {
@@ -47,40 +47,39 @@
           };
       });
 
-    # Apply overrides only to buildable workspace packages
-    workspaceOverrides = lib.listToAttrs (map (ws: {
-      name = ws.name;
-      value =
-        if prev ? ${ws.name}
-        then overridePackage ws.name
-        else null;
-    }) (lib.filter (ws: prev ? ${ws.name}) buildableWorkspaces));
+    # Create overrides for all workspace packages (including root if not empty)
+    allWorkspacePackages = 
+      (if pythonProject.emptyRoot then [] else [pythonProject.projectName])
+      ++ (map (ws: ws.projectName) pythonProject.workspaces);
+
+    # Apply overrides to all workspace packages that exist in the package set
+    workspaceOverrides = lib.listToAttrs (
+      lib.filter (x: x.value != null) 
+        (map (name: {
+          inherit name;
+          value = if prev ? ${name} then overridePackage name else null;
+        }) allWorkspacePackages)
+    );
   in
     workspaceOverrides;
 
-  # Create editable package overrides
-  mkEditableOverrides = final: prev: allWorkspaces: projectDirs: let
+  # Create editable package overrides for workspace packages
+  mkEditableOverrides = final: prev: let
     # Helper function to sanitize project names for directory names
     sanitizeName = name: builtins.replaceStrings ["-"] ["_"] name;
 
-    # Check if a package has a src directory (legacy format)
-    hasSrcDir = ws: builtins.pathExists (ws.directory + "/src");
-    
-    # Check if a project spec has a src directory (new format)
-    hasProjectSrcDir = spec: builtins.pathExists (spec.projectDir or (spec.projectRoot + "/src/" + sanitizeName spec.projectName));
-
-    # Apply editable fixups to each workspace package that has src
-    makeEditable = ws:
-      if hasSrcDir ws
+    # Create editable override for a workspace package
+    makeWorkspaceEditable = workspaceSpec:
+      if prev ? ${workspaceSpec.projectName}
       then {
-        name = ws.name;
-        value = prev.${ws.name}.overrideAttrs (old: {
+        name = workspaceSpec.projectName;
+        value = prev.${workspaceSpec.projectName}.overrideAttrs (old: {
           src = lib.fileset.toSource {
-            root = ws.directory;
+            root = workspaceSpec.projectRoot;
             fileset = lib.fileset.unions [
-              (ws.directory + "/pyproject.toml")
-              (ws.directory + "/README.md")
-              (ws.directory + "/src/${projectDirs.${ws.name}}")
+              (workspaceSpec.projectRoot + "/pyproject.toml")
+              (workspaceSpec.projectRoot + "/README.md")
+              (workspaceSpec.projectDir or (workspaceSpec.projectRoot + "/src/" + sanitizeName workspaceSpec.projectName))
             ];
           };
 
@@ -95,42 +94,38 @@
         });
       }
       else {
-        # For packages without src, don't make them editable
-        name = ws.name;
-        value = prev.${ws.name};
+        name = workspaceSpec.projectName;
+        value = null;
       };
 
-    # Handle the root package - check if it has src directory
+    # Handle the root package
     rootPackageOverride =
-      if prev ? ${pythonProject.projectName}
-      then
-        if (!pythonProject.emptyRoot) && hasProjectSrcDir pythonProject
-        then {
-          # Root has src, make it editable
-          ${pythonProject.projectName} = prev.${pythonProject.projectName}.overrideAttrs (old: {
-            src = lib.fileset.toSource {
-              root = pythonProject.projectRoot;
-              fileset = lib.fileset.unions [
-                (pythonProject.projectRoot + "/pyproject.toml")
-                (pythonProject.projectRoot + "/README.md")
-                (pythonProject.projectDir or (pythonProject.projectRoot + "/src/" + sanitizeName pythonProject.projectName))
-              ];
-            };
+      if prev ? ${pythonProject.projectName} && !pythonProject.emptyRoot
+      then {
+        ${pythonProject.projectName} = prev.${pythonProject.projectName}.overrideAttrs (old: {
+          src = lib.fileset.toSource {
+            root = pythonProject.projectRoot;
+            fileset = lib.fileset.unions [
+              (pythonProject.projectRoot + "/pyproject.toml")
+              (pythonProject.projectRoot + "/README.md")
+              (pythonProject.projectDir or (pythonProject.projectRoot + "/src/" + sanitizeName pythonProject.projectName))
+            ];
+          };
 
-            nativeBuildInputs =
-              old.nativeBuildInputs
-              ++ final.resolveBuildSystem {
-                editables = [];
-              };
-          });
-        }
-        else {
-          # Root has no src or is empty, don't make it editable
-          ${pythonProject.projectName} = prev.${pythonProject.projectName};
-        }
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ final.resolveBuildSystem {
+              editables = [];
+            };
+        });
+      }
       else {};
+
+    # Create overrides for all workspace packages
+    workspaceOverrides = lib.listToAttrs (
+      lib.filter (x: x.value != null) 
+        (map makeWorkspaceEditable pythonProject.workspaces)
+    );
   in
-    # Combine workspace and root package overrides
-    lib.listToAttrs (map makeEditable (lib.filter (ws: prev ? ${ws.name}) allWorkspaces))
-    // rootPackageOverride;
+    workspaceOverrides // rootPackageOverride;
 }

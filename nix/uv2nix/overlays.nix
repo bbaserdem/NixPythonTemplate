@@ -28,11 +28,11 @@
     # Combine build system overrides
     (buildSystemOverrides.mkBuildSystemOverrides final prev);
 
-  # Create editable overlay for the main project
+  # Create editable overlay for the main project and all workspace packages
   editableOverlay = workspace.mkEditablePyprojectOverlay {
     root = "$REPO_ROOT";
-    # Include the main project
-    members = [ pythonProject.projectName ];
+    # Include the main project and all workspace packages
+    members = [ pythonProject.projectName ] ++ (map (ws: ws.projectName) pythonProject.workspaces);
   };
 
 in {

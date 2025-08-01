@@ -5,13 +5,21 @@
 }: let
   inherit (uvBoilerplate) lib;
   
-  # Create checks for the main project if it has tests
-  pythonChecks = 
-    if (uvBoilerplate.pythonSet ? ${pythonProject.projectName}) && 
-       (uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru ? tests) &&
-       (uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru.tests ? pytest) 
+  # Create a check for a package if it has tests
+  createPackageCheck = packageName:
+    if (uvBoilerplate.pythonSet ? ${packageName}) && 
+       (uvBoilerplate.pythonSet.${packageName}.passthru ? tests) &&
+       (uvBoilerplate.pythonSet.${packageName}.passthru.tests ? pytest) 
     then {
-      "${pythonProject.projectName}-pytest" = uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru.tests.pytest;
+      "${packageName}-pytest" = uvBoilerplate.pythonSet.${packageName}.passthru.tests.pytest;
     }
     else {};
+
+  # Get all workspace package names
+  allPackageNames = 
+    (if pythonProject.emptyRoot then [] else [pythonProject.projectName])
+    ++ (map (ws: ws.projectName) pythonProject.workspaces);
+
+  # Create checks for all workspace packages
+  pythonChecks = lib.foldl' (acc: packageName: acc // (createPackageCheck packageName)) {} allPackageNames;
 in pythonChecks
