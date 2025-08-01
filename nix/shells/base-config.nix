@@ -31,9 +31,7 @@
   ];
 
   # Base environment variables
-  env = {
-    NIX_CONFIG = "extra-experimental-features = nix-command flakes ca-derivations pipe-operators";
-  };
+  env = {};
 
   # Base shell hooks
   shellHook = ''
@@ -42,13 +40,16 @@
   '';
 
   # Python environment integration (if uvBoilerplate is provided)
-  python = if uvBoilerplate != null then {
-    packages = uvBoilerplate.uvShellSet.packages;
-    env = uvBoilerplate.uvShellSet.env;
-    shellHook = uvBoilerplate.uvShellSet.shellHook;
-  } else {
-    packages = [];
-    env = {};
-    shellHook = "";
-  };
+  python =
+    if uvBoilerplate != null
+    then {
+      packages = uvBoilerplate.uvShellSet.packages;
+      env = uvBoilerplate.uvShellSet.env;
+      shellHook = uvBoilerplate.uvShellSet.shellHook;
+    }
+    else {
+      packages = [];
+      env = {};
+      shellHook = "";
+    };
 }

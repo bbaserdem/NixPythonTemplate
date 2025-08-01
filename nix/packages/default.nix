@@ -4,13 +4,14 @@
   inputs,
   system,
   uvBoilerplate,
+  pythonProject,
   ...
 }: let
   inherit (pkgs) lib stdenv callPackage;
 
   # Import package modules
   pythonPackages = import ./python.nix {
-    inherit pkgs uvBoilerplate;
+    inherit pkgs uvBoilerplate pythonProject;
   };
 
   customPackages = import ./custom.nix {

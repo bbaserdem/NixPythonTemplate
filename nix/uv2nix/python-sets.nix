@@ -12,7 +12,6 @@
 }: let
   inherit (inputs) pyproject-nix pyproject-build-systems;
   inherit (overlayData) overlay pyprojectOverrides editableOverlay;
-  inherit (workspaceData) projectDirs allWorkspaces;
 
   # Base python package set
   baseSet = pkgs.callPackage pyproject-nix.build.packages {inherit python;};
@@ -26,16 +25,10 @@
     ]
   );
 
-  # Import workspace overrides for editable packages
-  workspaceOverrides = import ./workspace-overrides.nix {inherit lib stdenv pythonProject;};
-
-  # Editable python set with fixups for all packages
+  # Editable python set with fixups for the main package
   editablePythonSet = pythonSet.overrideScope (
     lib.composeManyExtensions [
       editableOverlay
-
-      # Apply fixups for building editable packages
-      (final: prev: workspaceOverrides.mkEditableOverrides final prev allWorkspaces projectDirs)
     ]
   );
 

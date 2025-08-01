@@ -9,15 +9,10 @@
   ...
 }: let
   inherit (pythonSets) editablePythonSet;
-  inherit (workspaceData) workspace buildableWorkspaces;
+  inherit (workspaceData) workspace;
 
-  # Filter dependencies to only include buildable packages
-  buildableDeps =
-    lib.filterAttrs (
-      name: deps:
-        lib.any (ws: ws.name == name) buildableWorkspaces
-    )
-    workspace.deps.all;
+  # Use all dependencies (simplified since we only have one workspace)
+  buildableDeps = workspace.deps.all;
 
   # Single virtualenv with only buildable packages
   virtualenv =

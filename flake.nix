@@ -27,16 +27,24 @@
     self,
     nixpkgs,
     flake-utils,
+    uv2nix,
+    pyproject-nix,
+    pyproject-build-systems,
     ...
   } @ inputs: let
     outputs = self;
     pythonProject = import ./nix/python.nix;
   in
     flake-utils.lib.eachDefaultSystem (system: let
+      inherit (nixpkgs) lib;
+      
+      # Load workspace directly from root
+      workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
+      
       # Grab UV stuff
       pkgs = import nixpkgs {inherit system;};
       uvBoilerplate = import nix/uv2nix {
-        inherit inputs system pythonProject pkgs;
+        inherit inputs system pythonProject pkgs workspace;
       };
     in {
       checks = import ./nix/checks.nix {
@@ -46,7 +54,7 @@
         inherit outputs pkgs inputs system uvBoilerplate pythonProject;
       };
       packages = import ./nix/packages {
-        inherit pkgs inputs system uvBoilerplate;
+        inherit pkgs inputs system uvBoilerplate pythonProject;
       };
       devShells = import ./nix/shells {
         inherit pkgs inputs system uvBoilerplate;

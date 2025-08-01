@@ -1,0 +1,3 @@
+[submodule "uv2nix"]
+	path = uv2nix
+	url = https://github.com/pyproject-nix/uv2nix.git

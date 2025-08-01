@@ -5,17 +5,13 @@
 }: let
   inherit (uvBoilerplate) lib;
   
-  # Create checks for all workspaces that have tests
-  pythonChecks = lib.listToAttrs (
-    lib.filter (x: x.value != null) (
-      map (ws: {
-        name = "${ws.name}-pytest";
-        value = if (uvBoilerplate.pythonSet ? ${ws.name}) && 
-                  (uvBoilerplate.pythonSet.${ws.name}.passthru ? tests) &&
-                  (uvBoilerplate.pythonSet.${ws.name}.passthru.tests ? pytest) 
-               then uvBoilerplate.pythonSet.${ws.name}.passthru.tests.pytest
-               else null;
-      }) uvBoilerplate.allWorkspaces
-    )
-  );
+  # Create checks for the main project if it has tests
+  pythonChecks = 
+    if (uvBoilerplate.pythonSet ? ${pythonProject.projectName}) && 
+       (uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru ? tests) &&
+       (uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru.tests ? pytest) 
+    then {
+      "${pythonProject.projectName}-pytest" = uvBoilerplate.pythonSet.${pythonProject.projectName}.passthru.tests.pytest;
+    }
+    else {};
 in pythonChecks

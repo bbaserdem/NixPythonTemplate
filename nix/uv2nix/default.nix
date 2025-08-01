@@ -5,6 +5,7 @@
   system,
   pythonProject,
   pkgs,
+  workspace,
   ...
 }: let
   # Explicitly name our inputs that we'll use
@@ -21,7 +22,7 @@
 
   # Load workspace data
   workspaceData = import ./workspace.nix {
-    inherit inputs pythonProject lib;
+    inherit inputs pythonProject lib workspace;
   };
 
   # Load overlay data
@@ -48,13 +49,7 @@ in {
   # Workspace data
   inherit (workspaceData) 
     sanitizeName
-    collectWorkspaces
-    allWorkspaces
-    projectDirs
-    workspace
-    workspaces
-    buildableWorkspaces
-    filteredWorkspaceMembers;
+    workspace;
 
   # Python sets
   inherit (pythonSets)
