@@ -7,5 +7,5 @@
   # Project spec fields  
   projectName = "template";
   projectRoot = ".";
-  projectDir = "src";
+  # projectDir is optional - if not defined, defaults to "src/<sanitizedName>"
 }
