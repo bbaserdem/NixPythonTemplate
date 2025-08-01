@@ -16,6 +16,9 @@ testing = [
     "pytest-cov>=4.0",
 ]
 
+[project.scripts]
+math-calc = "math_utils.cli:main"
+
 [build-system]
 requires = ["hatchling", "editables"]
 build-backend = "hatchling.build"
