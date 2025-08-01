@@ -7,37 +7,60 @@
 }: let
   inherit (pkgs) lib;
 
-  # Create package for the main project - wrap the binary without including Python interpreter
-  pythonPackages = 
-    if uvBoilerplate.pythonSet ? ${pythonProject.projectName}
+  # Create a pure Python package (library package) for workspace packages
+  createLibraryPackage = packageName:
+    if uvBoilerplate.pythonSet ? ${packageName}
     then {
-      ${pythonProject.projectName} = pkgs.stdenv.mkDerivation {
-        name = "${pythonProject.projectName}-${uvBoilerplate.pythonSet.${pythonProject.projectName}.version}";
+      ${packageName} = uvBoilerplate.pythonSet.${packageName};
+    }
+    else {};
+
+  # Create a wrapper package with executable for packages that have scripts
+  createExecutablePackage = packageName:
+    if uvBoilerplate.pythonSet ? ${packageName}
+    then {
+      ${packageName} = pkgs.stdenv.mkDerivation {
+        name = "${packageName}-${uvBoilerplate.pythonSet.${packageName}.version}";
         
         # Create a minimal package with just the executable
-        buildInputs = [ uvBoilerplate.pythonSet.${pythonProject.projectName} ];
+        buildInputs = [ uvBoilerplate.pythonSet.${packageName} ];
         
         unpackPhase = "true"; # No source to unpack
         
         installPhase = ''
           mkdir -p $out/bin
           
-          # Create a wrapper script for the template binary that sets up PYTHONPATH
-          cat > $out/bin/${pythonProject.projectName} << EOF
+          # Create a wrapper script for the binary that sets up PYTHONPATH
+          cat > $out/bin/${packageName} << EOF
           #!/usr/bin/env bash
-          export PYTHONPATH="${uvBoilerplate.pythonSet.${pythonProject.projectName}}/lib/python3.13/site-packages:\$PYTHONPATH"
-          exec ${uvBoilerplate.python}/bin/python -m ${pythonProject.projectName}.main "\$@"
+          export PYTHONPATH="${uvBoilerplate.pythonSet.${packageName}}/lib/python3.13/site-packages:\$PYTHONPATH"
+          exec ${uvBoilerplate.python}/bin/python -m ${packageName}.main "\$@"
           EOF
           
-          chmod +x $out/bin/${pythonProject.projectName}
+          chmod +x $out/bin/${packageName}
         '';
         
         meta = {
-          description = "Template Python project";
-          mainProgram = pythonProject.projectName;
+          description = "${packageName} Python project";
+          mainProgram = packageName;
         };
       };
     }
     else {};
 
-in pythonPackages
+  # Get all workspace package names
+  allWorkspacePackages = 
+    (if pythonProject.emptyRoot then [] else [pythonProject.projectName])
+    ++ (map (ws: ws.projectName) pythonProject.workspaces);
+
+  # Create packages for all workspace packages
+  # Main project gets executable wrapper, workspace packages get library packages
+  mainProjectPackages = 
+    if pythonProject.emptyRoot then {} 
+    else createExecutablePackage pythonProject.projectName;
+
+  workspaceLibraryPackages = lib.foldl' (acc: packageName: 
+    acc // (createLibraryPackage packageName)
+  ) {} (map (ws: ws.projectName) pythonProject.workspaces);
+
+in mainProjectPackages // workspaceLibraryPackages
