@@ -10,8 +10,8 @@
 
   # Create docs virtualenv with docs dependencies
   docsVirtualenv = editablePythonSet.mkVirtualEnv
-    "template-docs-env"
-    (workspace.deps.all // { template = ["docs"]; });
+    "workspace-docs-env"
+    workspace.deps.all;
 
   # Additional system tools for documentation
   docsPackages = with pkgs; [

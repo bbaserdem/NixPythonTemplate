@@ -3,23 +3,96 @@
   pythonProject,
   ...
 }: let
-  inherit (uvBoilerplate) lib;
+  inherit (uvBoilerplate) lib stdenv pythonSet;
   
-  # Create a check for a package if it has tests
+  # Create a pytest check directly for a package
   createPackageCheck = packageName:
-    if (uvBoilerplate.pythonSet ? ${packageName}) && 
-       (uvBoilerplate.pythonSet.${packageName}.passthru ? tests) &&
-       (uvBoilerplate.pythonSet.${packageName}.passthru.tests ? pytest) 
-    then {
-      "${packageName}-pytest" = uvBoilerplate.pythonSet.${packageName}.passthru.tests.pytest;
-    }
+    if (pythonSet ? ${packageName}) then
+      let
+        pkg = pythonSet.${packageName};
+        # Create a test environment with the package and pytest
+        testEnv = {
+          ${packageName} = [];
+        } 
+        // (lib.optionalAttrs (pythonSet ? pytest) { pytest = []; })
+        // (lib.optionalAttrs (pythonSet ? pytest-cov) { pytest-cov = []; });
+        
+        virtualenv = pythonSet.mkVirtualEnv "${packageName}-pytest-env" testEnv;
+      in {
+        "${packageName}-pytest" = stdenv.mkDerivation {
+          name = "${pkg.name}-pytest";
+          inherit (pkg) src;
+          nativeBuildInputs = [ virtualenv ];
+          dontConfigure = true;
+          
+          buildPhase = ''
+            runHook preBuild
+            # Run pytest in the package's test directory if it exists
+            if [ -d "tests" ]; then
+              pytest --cov ${packageName} tests --cov-report html
+            else
+              echo "No tests directory found for ${packageName}"
+              exit 1
+            fi
+            runHook postBuild
+          '';
+          
+          installPhase = ''
+            runHook preInstall
+            if [ -d "htmlcov" ]; then
+              mv htmlcov $out
+            else
+              mkdir -p $out
+              echo "No coverage report generated" > $out/no-coverage.txt
+            fi
+            runHook postInstall
+          '';
+        };
+      }
     else {};
 
-  # Get all workspace package names
-  allPackageNames = 
-    (if pythonProject.emptyRoot then [] else [pythonProject.projectName])
-    ++ (map (ws: ws.projectName) pythonProject.workspaces);
+  # Get all workspace package names (excluding root if empty)
+  workspacePackageNames = map (ws: ws.projectName) pythonProject.workspaces;
 
   # Create checks for all workspace packages
-  pythonChecks = lib.foldl' (acc: packageName: acc // (createPackageCheck packageName)) {} allPackageNames;
-in pythonChecks
+  workspaceChecks = lib.foldl' (acc: packageName: 
+    acc // (createPackageCheck packageName)
+  ) {} workspacePackageNames;
+
+  # Add integration tests for empty root if tests directory exists
+  integrationTests = 
+    if pythonProject.emptyRoot then
+      let
+        # Create test environment with all workspace packages
+        testEnv = lib.listToAttrs (map (name: {
+          name = name;
+          value = [];
+        }) workspacePackageNames)
+        // (lib.optionalAttrs (pythonSet ? pytest) { pytest = []; })
+        // (lib.optionalAttrs (pythonSet ? pytest-cov) { pytest-cov = []; });
+        
+        virtualenv = pythonSet.mkVirtualEnv "integration-tests-env" testEnv;
+      in {
+        "integration-tests" = stdenv.mkDerivation {
+          name = "workspace-integration-tests";
+          src = ../.;
+          nativeBuildInputs = [ virtualenv ];
+          dontConfigure = true;
+          
+          buildPhase = ''
+            runHook preBuild
+            pytest tests -v
+            runHook postBuild
+          '';
+          
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            echo "Integration tests passed" > $out/test-results.txt
+            runHook postInstall
+          '';
+        };
+      }
+    else {};
+
+in workspaceChecks // integrationTests

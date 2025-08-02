@@ -10,8 +10,8 @@
 
   # Create testing virtualenv with testing dependencies
   testingVirtualenv = editablePythonSet.mkVirtualEnv
-    "template-testing-env"
-    (workspace.deps.all // { template = ["testing"]; });
+    "workspace-testing-env"
+    workspace.deps.all;
 
   # Additional system tools for testing
   testingPackages = with pkgs; [

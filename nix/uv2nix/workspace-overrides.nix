@@ -26,8 +26,8 @@
               (old.tests or {})
               // {
                 pytest = stdenv.mkDerivation {
-                  name = "${final.${name}.name}-pytest";
-                  inherit (final.${name}) src;
+                  name = "${old.name}-pytest";
+                  inherit (old) src;
                   nativeBuildInputs = [
                     virtualenv
                   ];

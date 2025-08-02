@@ -13,6 +13,11 @@
   inherit (inputs) pyproject-nix pyproject-build-systems;
   inherit (overlayData) overlay pyprojectOverrides editableOverlay;
 
+  # Import workspace overrides for test support
+  workspaceOverrides = import ./workspace-overrides.nix {
+    inherit lib stdenv pythonProject;
+  };
+
   # Base python package set
   baseSet = pkgs.callPackage pyproject-nix.build.packages {inherit python;};
 
