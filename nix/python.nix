@@ -1,7 +1,7 @@
 # Python project spec
 {
   # Parent-only fields
-  emptyRoot = false;        # Root workspace contains a Python package
+  emptyRoot = true;         # Root workspace contains a Python package
   workspaces = [            # Workspace package definitions
     {
       projectName = "math-utils";
