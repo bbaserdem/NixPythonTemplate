@@ -1,4 +1,4 @@
-"""Python project template with monorepo support."""
+"""Python project template."""
 
 __version__ = "0.0.0"
 __package_name__ = "template"
