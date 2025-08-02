@@ -1,9 +1,62 @@
-# Empty root workspace - no package definition
+[project]
+name = "template"
+version = "0.0.0"
+description = "Python monorepo template with workspace support"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    { name = "Your Name", email = "your.name@example.com" }
+]
+maintainers = [
+    { name = "Your Name", email = "your.name@example.com" }
+]
+requires-python = ">=3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+]
+dependencies = [
+    "math-utils",
+    "text-utils",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "ruff>=0.1",
+]
+testing = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "coverage[toml]>=7.0",
+]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=1.0",
+    "myst-parser>=2.0",
+    "pdoc>=14.0",
+]
+
+[project.scripts]
+template = "template.main:main"
 
 [tool.uv.workspace]
 members = ["packages/*"]
 
-# No sources or build system needed for empty root
+[tool.uv.sources]
+math-utils = { workspace = true }
+text-utils = { workspace = true }
+
+[build-system]
+requires = ["hatchling", "editables"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 target-version = "py313"
@@ -37,11 +90,28 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 
-# Global test configuration for integration tests
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     "-ra",
     "--strict-markers",
+    "--cov=template",
+    "--cov-report=term-missing",
+    "--cov-report=html",
 ]
+
+[tool.coverage.run]
+source = ["src/template"]
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/template"]

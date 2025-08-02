@@ -51,13 +51,15 @@
       }
     else {};
 
-  # Get all workspace package names (excluding root if empty)
-  workspacePackageNames = map (ws: ws.projectName) pythonProject.workspaces;
+  # Get all package names (including root if not empty)
+  allPackageNames = 
+    (if pythonProject.emptyRoot then [] else [pythonProject.projectName])
+    ++ (map (ws: ws.projectName) pythonProject.workspaces);
 
-  # Create checks for all workspace packages
-  workspaceChecks = lib.foldl' (acc: packageName: 
+  # Create checks for all packages
+  packageChecks = lib.foldl' (acc: packageName: 
     acc // (createPackageCheck packageName)
-  ) {} workspacePackageNames;
+  ) {} allPackageNames;
 
   # Add integration tests for empty root if tests directory exists
   integrationTests = 
@@ -67,7 +69,7 @@
         testEnv = lib.listToAttrs (map (name: {
           name = name;
           value = [];
-        }) workspacePackageNames)
+        }) (map (ws: ws.projectName) pythonProject.workspaces))
         // (lib.optionalAttrs (pythonSet ? pytest) { pytest = []; })
         // (lib.optionalAttrs (pythonSet ? pytest-cov) { pytest-cov = []; });
         
@@ -95,4 +97,4 @@
       }
     else {};
 
-in workspaceChecks // integrationTests
+in packageChecks // integrationTests
